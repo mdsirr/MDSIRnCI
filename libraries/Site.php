@@ -67,8 +67,6 @@ class Site {
         }
     }
 
-    
-
     public function echo_if($variable = NULL) {
         echo isset($variable) && $variable ? $variable : '';
     }
@@ -253,18 +251,51 @@ class Site {
             return $output;
         echo $output;
     }
-    
-    public function date_index($index, $convert='P2M') {
+
+    public function date_index($index, $convert = 'P2M') {
         $php_to_mysql_array = array(6, 0, 1, 2, 3, 4, 5);
-        if($convert === 'P2M'){
-            return $php_to_mysql_array[$index];
-        }
-        else if($convert==='M2P'){
+        if ($convert === 'P2M') {
+            return (int) $php_to_mysql_array[$index];
+        } else if ($convert === 'M2P') {
             $mysql_to_php_array = array_flip($php_to_mysql_array);
-            return $mysql_to_php_array[$index];
+            return (int) $mysql_to_php_array[$index];
         }
-        
+
         return FALSE;
+    }
+
+    //Return the array of days(Y-m-d) in a month(Y-m)
+    public function days($month = NULL, $without_day_index=array(), $without_days = array(), $up_to_today=FALSE) {
+        $return = array();
+        $month = $month ? : date('Y-m');
+        $is_current_month = $month == date('Y-m');
+        $without_day_index = is_null($without_day_index) ? array() : (array)$without_day_index;
+        $without_days = is_null($without_days) ? array() : (array)$without_days;
+        $month_arr = explode('-', $month);
+        $days_in_month = $up_to_today && $is_current_month ? (int)date('j') : cal_days_in_month(CAL_GREGORIAN, (int) $month_arr[1], (int) $month_arr[0]);
+        foreach (range(1, $days_in_month) as $value) {
+            $day = $month . '-' . str_pad($value, 2, '0', STR_PAD_LEFT);
+            $day_index = date("w", strtotime($day));
+            if (!in_array($day, $without_days) && !in_array($day_index, $without_day_index)) {
+                $return[] = $day;
+            }
+        }
+        return $return;
+    }
+    
+    public function days_from_range($start_date, $end_date, $format = "Y-m-d") {
+        $begin = new DateTime($start_date);
+        $end = new DateTime($end_date);
+        $end = $end->modify('+1 day');
+
+        $interval = new DateInterval('P1D');
+        $daterange = new DatePeriod($begin, $interval, $end);
+
+        $return_arr = array();
+        foreach ($daterange as $date) {
+            $return_arr[] = $date->format($format);
+        }
+        return $return_arr;
     }
 
 }
