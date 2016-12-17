@@ -141,6 +141,15 @@ class MY_Controller extends CI_Controller {
         $data = array('menu_active' => $menu_active, 'title' => $title, 'breadcrumb' => $breadcrumb, 'content' => $this->load->view($content_view, $content_data, true));
         $this->load->view('layout', array_merge($data, $main_data));
     }
+    
+    public function logged_type($user_types = NULL) {
+        if ($user_types) {
+            $types = explode('|', str_replace(' ', '', $user_types));
+            return in_array($this->logged->type, $types);
+        } else {
+            return $this->logged->type;
+        }
+    }
 
     // Validation method for is not exist without current value.
     public function ist_exist_wc($field_val = '', $param) {
