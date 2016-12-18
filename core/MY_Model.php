@@ -72,6 +72,28 @@ class MY_Model extends CI_Model {
         $deleted = (int) $this->db->affected_rows();
         return $deleted > 0;
     }
+    
+    //users.id.name
+    public function key_val_array($db_table_fields, $where = NULL) {
+        $table_fields = explode('.', $db_table_fields);
+        $db_table = $table_fields[0];
+        $key_field = $table_fields[1];
+        $value_field = $table_fields[2];
+        if (count($table_fields) != 3) {
+            return FALSE;
+        }
+        if ($where) {
+            is_array($where) ? $this->db->where($where) : $this->db->where($where, NULL, FALSE);
+        }
+        $return_array = array();
+        $db_result = $this->db->select($key_field . ', ' . $value_field)->get($db_table)->result_array();
+
+        foreach ($db_result as $row) {
+            $return_array[$row[$key_field]] = $row[$value_field];
+        }
+
+        return $return_array;
+    }
 
     ///////////////MDSIR End//////////////////
 }
