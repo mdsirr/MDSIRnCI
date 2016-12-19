@@ -27,13 +27,20 @@ class MY_Model extends CI_Model {
         return empty($row) ? false : $row;
     }
 
+    public function row($table, $where, $columns = '*') {
+        return $this->db_get_single_row($table, $where, $columns);
+    }
+
     public function entries($table_name, $id = NULL, $columns = NULL, $where = NULL) {
         $columns = $columns ? $columns : '*';
         //$table_name = $this->site->dbt_com($table_name, NULL, TRUE); // FOR SAS
         if ($id) {
             $result = $this->db_get_single_row($table_name, array('id' => $id), $columns);
-            $result_arr = (array) $result;
-            return count($result_arr) === 1 ? $result_arr[$columns] : $result;
+            if ($result) {
+                $result_arr = (array) $result;
+                return count($result_arr) === 1 ? $result_arr[$columns] : $result;
+            }
+            return FALSE;
         } else {
             if ($where) {
                 $this->db->where($where);
