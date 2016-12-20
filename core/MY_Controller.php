@@ -19,7 +19,7 @@ class MY_Controller extends CI_Controller {
     }
 
     // Database insert and update
-    public function in_up($db_table_name, $data, $validation = NULL, $redirect = NULL, $msg_success = NULL, $msg_failed = NULL, $set_created = TRUE) {
+    public function in_up($db_table_name, $data, $validation = NULL, $redirect = NULL, $msg_success = NULL, $msg_failed = NULL, $set_created = TRUE, $attachment = NULL) {
         $is_validate = TRUE;
         if (is_array($db_table_name)) {
             $db_table = $db_table_name[0];
@@ -61,6 +61,30 @@ class MY_Controller extends CI_Controller {
         if ($is_validate == FALSE) {
             msg_success($this->form_validation->error_string(), FALSE);
         } else {
+            //Upload File
+            $file = $thumb = $upload_data = NULL;
+            if ($attachment === TRUE) {
+                $attachment_column = 'attachment';
+            } else if (is_array($attachment)) {
+                $attachment_column = key($attachment);
+                $upload_params = reset($attachment);
+                if (is_array($upload_params)) {
+                    $file = isset($upload_params[0]) ? $upload_params[0] : NULL;
+                    $thumb = isset($upload_params[1]) ? $upload_params[1] : NULL;
+                    $upload_data = isset($upload_params[2]) ? $upload_params[2] : NULL;
+                } else {
+                    $file = $upload_params;
+                }
+            } else if (is_string($attachment)) {
+                $attachment_column = $attachment;
+            }
+
+            $upload = $this->upload($file, $thumb, $upload_data);
+            if ($upload->success) {
+                $data[$attachment_column] = $upload->data;
+            }
+            //X Upload File
+
             if ($is_insert) {
                 $result = $this->db->insert($db_table, $data);
                 $result ? msg_success($msg_success) : msg_success($msg_failed, FALSE);
@@ -83,7 +107,10 @@ class MY_Controller extends CI_Controller {
         }
     }
 
-    public function upload($file = 'attachment', $thumb = FALSE, $upload_data = 'file_name') {
+    public function upload($file = NULL, $thumb = NULL, $upload_data = NULL) {
+        $file = $file ? : 'attachment';
+        $thumb = $thumb ? : FALSE;
+        $upload_data = $upload_data ? : 'file_name';
         $return = new stdClass();
         $return->success = $return->errors = $return->data = NULL;
 
@@ -136,6 +163,8 @@ class MY_Controller extends CI_Controller {
 
         return $return;
     }
+
+    
 
     public function render_page($menu_active = '', $title = '', $breadcrumb = array(), $content_view = '', $content_data = array(), $main_data = array()) {
         $data = array('menu_active' => $menu_active, 'title' => $title, 'breadcrumb' => $breadcrumb, 'content' => $this->load->view($content_view, $content_data, true));
