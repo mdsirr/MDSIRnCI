@@ -188,5 +188,9 @@ class MY_Controller extends CI_Controller {
         $this->form_validation->set_message(__FUNCTION__, '{field} already taken.');
         return $this->site->validation_is_exist_without_current($db_table_name, $db_table_column_name);
     }
+    
+    public function is_post(){
+        return $this->input->method() === 'post';
+    }
 
 }
