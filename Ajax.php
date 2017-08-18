@@ -53,6 +53,19 @@ class Ajax extends MY_Controller {
         echo json_encode($ret);
     }
 
+    public function select2_teachers() {
+        $search_key = $this->input->get('term');
+        $page_limit = $this->input->get('page_limit');
+        
+        $res = $this->db->select("id, name AS text")
+                    ->like('name', $search_key)
+                    ->or_like('email', $search_key)
+                    ->get('teachers', $page_limit);
+        
+        $ret['results'] = $res->result_array();
+        echo json_encode($ret);
+    }
+
     public function select_ops($db_table_name, $field=NULL, $value_field = NULL, $empty_option = "-- Select one option --") {
         $where = $this->input->get_post('where');
         $selected = $this->input->get_post('selected');
@@ -142,6 +155,31 @@ class Ajax extends MY_Controller {
                 ->from('teachers t')
                 ->join('ia_users u', "u.info_id=t.id AND u.type='teacher'", 'left')
                 ->add_column('action', $this->_dt_actions($action_menus), 'id, user_id, emp_pi_id');
+        $this->output->set_content_type('application/json')->set_output($this->datatables->generate());
+    }
+
+    public function dt_coordinators() {
+        
+        $action_menus = anchor_lis(array(
+            array('coordinators/view/$1', icon_fa('television', 'View Details', 2), 'class="ajax-popup-link"')
+        ));
+        
+        $action_menus .= anchor_lis(array(
+            array('coordinators/edit/$1', icon_fa('pencil-square-o', 'Edit', 2), 'class="ajax-popup-link"'),
+            array('coordinators/delete/$1', icon_fa('trash-o', 'Delete', 2), 'class="confirm-link"'),
+        ));
+        
+        $action_menus .= '<li class="divider"></li>';
+        $action_menus .= anchor_lis(array(
+            array('auth/users/add/$1?usertype=coordinator', icon_fa('user-plus', 'Create User', 2), 'class="ajax-popup-link user-add" data-uid="$2"'),
+            array('auth/password_reset_by_admin/$2/', icon_fa('key', 'New Password', 2), 'class="ajax-popup-link user-modify" data-uid="$2"'),
+            array('auth/users/edit/$2/', icon_fa('pencil-square-o', 'Edit User', 2), 'class="ajax-popup-link user-modify" data-uid="$2"')
+        ));
+        
+        $this->datatables->select("c.id, c.name, c.phone, c.email, (IF(c.coordinator_type = 0, 'Class', 'Subject')) coordinator_type , u.id AS user_id")
+        ->from('coordinators c')
+        ->join('ia_users u', "u.info_id=c.id AND u.type='coordinator'", 'left')
+        ->add_column('action', $this->_dt_actions($action_menus), 'id, user_id');
         $this->output->set_content_type('application/json')->set_output($this->datatables->generate());
     }
 
