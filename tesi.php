@@ -297,16 +297,6 @@ class Site {
         $this->load->library('excel');
         $this->excel->setActiveSheetIndex(0);
         $this->excel->getActiveSheet()->fromArray($data_array, null, 'A1');
-        /*if (is_array($data_array)) {
-            
-        } else {
-            // save $table inside temporary file that will be deleted later
-             $tmpfile = tempnam(sys_get_temp_dir(), 'html');
-              file_put_contents($tmpfile, $data_array);
-              $excelHTMLReader = PHPExcel_IOFactory::createReader('HTML');
-              $excelHTMLReader->loadIntoExisting($tmpfile, $this->excel);
-              unlink($tmpfile); 
-        }*/
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="' . $file_name . '.xls"');
@@ -401,7 +391,7 @@ class Site {
         $days_in_month = $up_to_today && $is_current_month ? (int) date('j') : cal_days_in_month(CAL_GREGORIAN, (int) $month_arr[1], (int) $month_arr[0]);
         foreach (range(1, $days_in_month) as $value) {
             $day = $month . '-' . str_pad($value, 2, '0', STR_PAD_LEFT);
-            $day_index = getMyDate('w', $day); //date("w", strtotime($day));
+            $day_index = date("w", strtotime($day));
             if (!in_array($day, $without_days) && !in_array($day_index, $without_day_index)) {
                 $return[] = $day;
             }
@@ -409,8 +399,7 @@ class Site {
         return $return;
     }
 
-    public function days_from_range($start_date, $end_date, $format = NULL, $is_get_count = FALSE) {
-        $format = $format ?: "Y-m-d";
+    public function days_from_range($start_date, $end_date, $format = "Y-m-d") {
         $begin = new DateTime($start_date);
         $end = new DateTime($end_date);
         $end = $end->modify('+1 day');
@@ -422,7 +411,7 @@ class Site {
         foreach ($daterange as $date) {
             $return_arr[] = $date->format($format);
         }
-        return $is_get_count === TRUE ? count($return_arr) : $return_arr;
+        return $return_arr;
     }
 
     public function ssop_sql_case($config_name, $dbt_field_name, $select_as = NULL) {
@@ -458,4 +447,82 @@ class Site {
     }
 
     ////////////// Accounts End //////////////
+    ////////////// School Start //////////////
+
+    public function coordinator_classes_subjects() {
+        $_classs_ = [];
+        $_subject_ = [];
+
+        $data['index'] = '';
+        $data['ids'] = [];
+
+        $coordinator_id = $this->logged_user_info_id();
+
+        $coordinator_type = $this->db->get_where('coordinators', array('id' => $coordinator_id))->row()->coordinator_type;
+
+        if ($coordinator_type == 0) {
+            $data['index'] = 'class_id';
+            $classs = $this->db->select('classes.id, classes.name')->join('classes', 'class_coordinator.class_id=classes.id')->get_where('class_coordinator', array('class_coordinator.coordinator_id' => $coordinator_id))->result();
+
+            foreach ($classs as $key => $value) {
+                array_push($_classs_, $value->id);
+            }
+            $data['ids'] = $_classs_;
+        } else if ($coordinator_type == 1) {
+            $data['index'] = 'subject_id';
+            $subjects = $this->db->select('subjects.id, subjects.name')->join('subjects', 'subject_coordinator.subject_id=subjects.id')->get_where('subject_coordinator', array('subject_coordinator.coordinator_id' => $coordinator_id))->result();
+
+            foreach ($subjects as $key => $value) {
+                array_push($_subject_, $value->id);
+            }
+            $data['ids'] = $_subject_;
+        }
+
+
+        return $data;
+    }
+
+    /**
+     * $cs is the type indecator like -> subject or class
+     * 
+     * @param string $cs 
+     *          Default 'class'
+     * @return string
+     */
+    public function teachers_classes_subjects($cs = 'class') {
+        $ids = [];
+
+        $data['index'] = '';
+        $data['ids'] = [];
+
+        $teacher_id = $this->logged_user_info_id();
+
+        if ($cs == 'class') {
+            $data['index'] = 'class_id';
+            $class_ids = $this->db->select("DISTINCT(class_id) class_id")->from("class_routine")
+                    ->where("teacher_id", $teacher_id)
+                    ->get()
+                    ->result_array();
+
+            foreach ($class_ids as $cid) {
+                array_push($ids, $cid["class_id"]);
+            }
+        } else if ($cs == 'subject') {
+            $data['index'] = 'subject_id';
+            $subject_ids = $this->db->select("DISTINCT(subject_id) subject_id")->from("class_routine")
+                    ->where("teacher_id", $teacher_id)
+                    ->get()
+                    ->result_array();
+
+            foreach ($subject_ids as $id) {
+                $ids[] = $id["subject_id"];
+            }
+        }
+
+        $data['ids'] = $ids;
+
+        return $data;
+    }
+
+    ////////////// School End //////////////
 }
